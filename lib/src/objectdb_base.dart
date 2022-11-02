@@ -14,12 +14,14 @@ import 'package:objectdb/src/objectdb_schema.dart';
 var keyPathRegExp = RegExp(r"(\w+|\[\w*\])");
 
 class CRUDController<T> {
-  static ExecutionQueue _executionQueue;
-  _ObjectDB db;
+  static late ExecutionQueue _executionQueue;
+  late _ObjectDB db;
 
-  CRUDController(ExecutionQueue queue, {this.db}) {
+  CRUDController(ExecutionQueue queue,{_ObjectDB? db}) {
     // for synchronized database operations
     _executionQueue = queue;
+		if (db != null)
+			setDB(db);
   }
 
   setDB(_ObjectDB db) {
@@ -28,7 +30,7 @@ class CRUDController<T> {
 
   /// get all documents that match [query] with optional change-[listener]
   Future<List<T>> find(Map<dynamic, dynamic> query,
-      [ListenerCallback listener]) {
+      [ListenerCallback? listener]) {
     try {
       if (listener != null) {
         db.listeners.add(Listener(query, listener));
@@ -111,6 +113,13 @@ class ObjectDB extends _ObjectDB<Map<dynamic, dynamic>> {
 
   @override
   Map<dynamic, dynamic> itemToMap(Map<dynamic, dynamic> item) => item;
+
+	@override
+	Future<ObjectDB> open([bool cleanup = true]) async
+	{
+    await super.open(cleanup);
+		return this;
+  }
 }
 
 /// Database class
@@ -120,19 +129,19 @@ class _ObjectDB<T> extends CRUDController<T> {
   // database version
   final int v;
   // database file handle
-  File _file;
-  IOSink _writer;
+  late File _file;
+  IOSink? _writer;
   // in memory cache
-  List<Map<dynamic, dynamic>> _data;
+  List<Map<dynamic, dynamic>> _data=[];
   // queue for synchronized database operations
   static ExecutionQueue _executionQueue = ExecutionQueue();
   // map operator string values to enum values
-  Map<String, Op> _operatorMap = Map();
+  Map<String, Op> _operatorMap = {};
   // database metadata (saved in first line of file)
   Meta _meta = Meta(1, 1);
-  CRUDController crudController;
+  //CRUDController crudController;
   // default (empty) onUpgrade handler
-  Function onUpgrade = (CRUDController db, int oldVersion) async {
+  Function? onUpgrade = (CRUDController db, int oldVersion) async {
     return;
   };
 
@@ -152,6 +161,7 @@ class _ObjectDB<T> extends CRUDController<T> {
 
   Map<dynamic, dynamic> itemToMap(T item) {
     UnimplementedError();
+		return {};
   }
 
   /// Opens flat file database
@@ -179,7 +189,7 @@ class _ObjectDB<T> extends CRUDController<T> {
     var reader = this._file.openRead();
     this._data = [];
 
-    int oldVersion;
+    int? oldVersion;
 
     bool firstLine = true;
     // read database to in-memory
@@ -208,14 +218,15 @@ class _ObjectDB<T> extends CRUDController<T> {
         // add line to in-memory store
         this._fromFile(line);
       }
-    });
-    if (this._writer != null) await this._writer.close();
+    });		
+		await this._writer?.close();
     this._writer = this._file.openWrite(mode: FileMode.writeOnlyAppend);
 
     // call onUpgrade if new version
     if (oldVersion != null) {
       var queue = ExecutionQueue();
-      await onUpgrade(CRUDController(queue, db: this), oldVersion);
+			if (onUpgrade != null)
+      	await onUpgrade?.call(CRUDController(queue, db: this), oldVersion);
       // await onUpgrade
       await queue.add<bool>(() => true);
       return await this._cleanup();
@@ -230,7 +241,7 @@ class _ObjectDB<T> extends CRUDController<T> {
 
   // do cleanup (resolve updates, inserts and deletes)
   Future<_ObjectDB> _cleanup() async {
-    await this._writer.close();
+    await this._writer?.close();
     // create backup file
     await this._file.rename(this.path + '.bak');
     this._file = File(this.path);
@@ -281,7 +292,7 @@ class _ObjectDB<T> extends CRUDController<T> {
   }
 
   /// returns matcher for given [query] and optional [op] (recursively)
-  Function _match(query, [Op op = Op.and]) {
+  MatcherFunction _match(query, [Op op = Op.and]) {
     bool match(Map<dynamic, dynamic> testVal) {
       // iterate all query elements
       keyloop:
@@ -429,7 +440,7 @@ class _ObjectDB<T> extends CRUDController<T> {
   /// check all listener and notify matches
   void _push(Method method, dynamic data) {
     listeners.forEach((listener) {
-      Function match = _match(listener.query);
+      MatcherFunction match = _match(listener.query);
       switch (method) {
         case Method.add:
           {
@@ -575,16 +586,16 @@ class _ObjectDB<T> extends CRUDController<T> {
   }
 
   /// Find data in in-memory data copy
-  Future _find(query, [Filter filter = Filter.all]) async {
+  Future<dynamic> _find(query, [Filter filter = Filter.all]) async {
     return Future.sync((() {
       var match = this._match(query);
       if (filter == Filter.all) {
         return this._data.where(match).toList();
       }
       if (filter == Filter.first) {
-        return this._data.firstWhere(match, orElse: () => null);
+        return this._data.firstWhere(match, orElse: () => {});
       } else {
-        return this._data.lastWhere(match, orElse: () => null);
+        return this._data.lastWhere(match, orElse: () => {});
       }
     }));
   }
@@ -594,7 +605,7 @@ class _ObjectDB<T> extends CRUDController<T> {
     ObjectId _id = ObjectId();
     data['_id'] = _id.toString();
     try {
-      this._writer.writeln('+' + json.encode(data));
+      this._writer?.writeln('+' + json.encode(data));
       this._insertData(data);
     } catch (e) {
       throw ObjectDBException('data contains invalid data types');
@@ -665,12 +676,12 @@ class _ObjectDB<T> extends CRUDController<T> {
   }
 
   int _remove(Map query) {
-    this._writer.writeln('-' + json.encode(this._encode(query)));
+    this._writer?.writeln('-' + json.encode(this._encode(query)));
     return this._removeData(query);
   }
 
   int _update(query, changes, replace) {
-    this._writer.writeln('~' +
+    this._writer?.writeln('~' +
         json.encode({
           'q': this._encode(query),
           'c': this._encode(changes),
@@ -687,7 +698,9 @@ class _ObjectDB<T> extends CRUDController<T> {
   /// close db
   Future close() {
     return _executionQueue.add(() async {
-      await this._writer.close();
+      await this._writer?.close();
     });
   }
 }
+
+typedef bool MatcherFunction(Map<dynamic, dynamic> testVal);

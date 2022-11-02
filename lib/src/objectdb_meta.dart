@@ -19,7 +19,7 @@ class Meta {
         version: getKey('version'), clientVersion: getKey('client_version'));
   }
 
-  Meta.internal({this.version, this.clientVersion});
+  Meta.internal({required this.version, required this.clientVersion});
 
   String toString() {
     return json.encode(

@@ -62,9 +62,6 @@ class ObjectId implements Comparable<ObjectId> {
   ///
   /// Throws an [ArgumentError] if [bytes] is null or its length is not 12.
   factory ObjectId.fromBytes(List<int> bytes) {
-    if (bytes == null) {
-      throw ArgumentError.notNull('bytes');
-    }
     if (bytes.length != 12) {
       throw ArgumentError.value(bytes, 'need 12 bytes');
     }
@@ -82,7 +79,7 @@ class ObjectId implements Comparable<ObjectId> {
 
   /// Converts this instance into 24-byte hexadecimal string representation.
   String toHexString() {
-    List<String> charCodes = List<String>(24);
+    List<String> charCodes = List.filled(24,"");
     int i = 0;
     for (final b in toBytes()) {
       charCodes[i++] = _hexChars[b >> 4 & 0xF];
@@ -94,7 +91,7 @@ class ObjectId implements Comparable<ObjectId> {
   /// Converts to a byte list. Note that the numbers are stored in big-endian
   /// order.
   List<int> toBytes() {
-    List<int> bytes = List<int>(12);
+    List<int> bytes = List.filled(12,0);
     bytes[0] = _int3(_timestamp);
     bytes[1] = _int2(_timestamp);
     bytes[2] = _int1(_timestamp);
@@ -145,10 +142,6 @@ class ObjectId implements Comparable<ObjectId> {
   /// Checks if a string could be an [ObjectId]. Throws an [ArgumentError] if
   /// [hexString] is null.
   static bool isValid(String hexString) {
-    if (hexString == null) {
-      throw ArgumentError.notNull('hexString');
-    }
-
     return hexString.length == 24 && _checkForHexRegExp.hasMatch(hexString);
   }
 }
@@ -216,7 +209,7 @@ List<int> _parseHexString(String s) {
         s, 'invalid hexadecimal representation of an ObjectId: [$s]');
   }
 
-  List<int> b = List<int>(12);
+  List<int> b = List.filled(12,0);
   for (var i = 0; i < b.length; i++) {
     b[i] = int.parse(s.substring(i * 2, i * 2 + 2), radix: 16);
   }
