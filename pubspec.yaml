@@ -6,8 +6,8 @@ environment:
     sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
-  execution_queue: ^1.0.3
-  deeply: ^1.0.1
+  execution_queue: ^1.2.0
+  deeply: ^1.2.0+1
 
 dev_dependencies:
-  test: any
+  test: ^1.22.0
