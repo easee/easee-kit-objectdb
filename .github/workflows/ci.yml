@@ -1,0 +1,19 @@
+name: "Tests"
+
+on:
+  pull_request:
+  push:    
+    branches:    
+      - master
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: "skela/apps"
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Flutter Dependancies
+      run: flutter pub get
+
+      - name: Unit / UI Testing
+      run: make test
