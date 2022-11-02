@@ -13,9 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      
+
     - name: Install Flutter Dependancies
-    run: flutter pub get
+      run: flutter pub get
 
     - name: Unit / UI Testing
-    run: make test
+      run: make test
