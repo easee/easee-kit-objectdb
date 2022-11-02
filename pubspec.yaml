@@ -3,7 +3,7 @@ description: Persistent embedded document-oriented NoSQL database for Dart and F
 version: 1.1.2-dev
 homepage: https://github.com/marioreggiori/objectdb
 environment:
-    sdk: ">=2.7.0 <3.0.0"
+    sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   execution_queue: ^1.2.0

@@ -1,6 +1,6 @@
 class Schema {
   String id;
-  Schema({this.id});
+  Schema({required this.id});
 
   dynamic operator [](String key) {
     if (key != '_id') throw UnimplementedError();
