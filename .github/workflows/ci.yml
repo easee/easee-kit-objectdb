@@ -6,14 +6,16 @@ on:
     branches:    
       - master
 jobs:
-  test:
+  tests:
+
     runs-on: ubuntu-latest
     container: "skela/apps"
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Flutter Dependancies
-      run: flutter pub get
 
-      - name: Unit / UI Testing
-      run: make test
+    steps:
+    - uses: actions/checkout@v3
+      
+    - name: Install Flutter Dependancies
+    run: flutter pub get
+
+    - name: Unit / UI Testing
+    run: make test
